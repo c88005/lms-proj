@@ -9,7 +9,7 @@ class notepad(QWidget):
         #self.def_ext = ".txt"
         self.color = clr
         self.showversion = False #release consumer version - false, beta - true
-        self.version = " 1.5"
+        self.version = " 1.6" #js like cs 1.6
         self.initUI()
 
     def initUI(self):
@@ -59,8 +59,14 @@ class notepad(QWidget):
         file_name, _ = QFileDialog.getOpenFileName(self, cur_lang["opas"], "", "Text Files (*.txt);;All Files (*)")
         if file_name:
             with open(file_name, 'r', encoding='utf-8') as file:
+                print(file_name)
                 self.text.setPlainText(file.read())
+                self.update_recents(file_name)
 
+    def fast_load(self, file_name):
+        with open(file_name, 'r+', encoding='utf-8') as file:
+            self.text.setPlainText(file.read())
+            self.update_recents(file_name)
 
     def update_color(self):
         self.save.setStyleSheet("color:" + colorf + ";")
@@ -76,7 +82,6 @@ class notepad(QWidget):
         self.setup.setText(cur_lang["setn"])
         self.open.setText(cur_lang["opf"])
 
-
     def save_file(self):
         global lang_rus
         global lang_eng
@@ -86,9 +91,64 @@ class notepad(QWidget):
                 print(self.text.toPlainText(), file=f)
                 self.label1.setText(f'{cur_lang["svdas"]} \n {file_name}!')
                 self.label1.resize(self.label1.sizeHint())
+                recentloc.update_list()
+                self.update_recents(file_name)
 
     def open_settings(self):
         settingsloc.show()
+
+    def update_recents(self, string):
+        with open("recents.txt", 'r+', encoding='utf-8') as r:
+            text = r.read().strip()
+            if string not in text:
+                if text != "":
+                    textall = text + "\n" + string.strip()
+                else:
+                    textall = string.strip()
+                print(textall, file=r)
+
+
+class recentwindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        # window
+        self.setFixedSize(250, 300)
+        self.setWindowTitle(cur_lang["rec"])
+
+        # list init
+        self.list = QListWidget(self)
+        self.list.move(0, 0)
+        self.list.resize(250, 300)
+
+        self.update_color()
+        self.update_list()
+
+        self.list.itemClicked.connect(self.get_clicked)
+
+    def get_clicked(self):
+        global ex
+        file = self.list.currentItem().text()
+        print(file.strip())
+        ex.fast_load(file.strip())
+
+
+    def update_list(self):
+        with open("recents.txt", 'r+', encoding='utf-8') as r:
+            text = r.readlines()
+            if text:
+                for i in text:
+                    self.list.insertItem(text.index(i), i)
+
+    def update_color(self):
+        global lang_rus
+        global lang_eng
+        self.list.setStyleSheet("color:" + colorf + ";" + "background-color:" + colort + ";")
+        self.setStyleSheet("background-color:" + colort + ";")
+        self.setWindowTitle(cur_lang["rec"])
+
 
 class settings(QWidget):
     def __init__(self):
@@ -119,6 +179,12 @@ class settings(QWidget):
         self.lang_ch.resize(85, 30)
         self.lang_ch.move(19, 97)
         self.lang_ch.clicked.connect(self.change_lang)
+
+        # recents button
+        self.recent = QPushButton(cur_lang["recb"], self)
+        self.recent.resize(85, 30)
+        self.recent.move(19, 138)
+        self.recent.clicked.connect(recentloc.show)
 
         #theme label
         self.labelt = QLabel("", self)
@@ -153,6 +219,7 @@ class settings(QWidget):
             colort = "#404040"
             colorf = "#FFFFFF"
             ex.update_color()
+            recentloc.update_color()
             self.update_color()
             with open("settings.stp", 'w', encoding='utf-8') as f:
                 print("theme "+ colort + "\nfontc " + colorf + "\nlang " + cur_lang["lang"], file=f)
@@ -161,6 +228,7 @@ class settings(QWidget):
             colort = "#E0E0E0"
             colorf = "#000000"
             self.update_color()
+            recentloc.update_color()
             ex.update_color()
             with open("settings.stp", 'w', encoding='utf-8') as f:
                 print("theme "+ colort + "\nfontc " + colorf + "\nlang " + cur_lang["lang"], file=f)
@@ -168,6 +236,7 @@ class settings(QWidget):
             colort = "#404040"
             colorf = "#FFFFFF"
             ex.update_color()
+            recentloc.update_color()
             self.update_color()
             with open("settings.stp", 'w', encoding='utf-8') as f:
                 print("theme "+ colort + "\nfontc " + colorf + "\nlang " + cur_lang["lang"], file=f)
@@ -176,6 +245,7 @@ class settings(QWidget):
         global lang_rus
         global lang_eng
         self.theme_btn.setStyleSheet("color:" + colorf + ";")
+        self.recent.setStyleSheet("color:" + colorf + ";")
         self.lang_ch.setStyleSheet("color:" + colorf + ";")
         self.labell.setStyleSheet("color:" + colorf + ";")
         self.theme_import.setStyleSheet("color:" + colorf + ";")
@@ -222,6 +292,7 @@ class settings(QWidget):
         with open("settings.stp", 'w', encoding='utf-8') as f:
             print("theme " + colort + "\nfontc " + colorf + "\nlang " + cur_lang["lang"], file=f)
         self.update_lang()
+        recentloc.update_color()
         ex.update_lang()
 
     def update_lang(self):
@@ -261,7 +332,9 @@ if __name__ == '__main__':
                 "thmtc": ": Своя",
                 "lngc": "Язык",
                 "setnt":"Настройки",
-                "nott":"Записная Книжка",}
+                "nott":"Записная Книжка",
+                "rec": "Недавние файлы",
+                "recb": "Недавние",}
     lang_eng = {"lang":"en",
                 "opf": "Open",
                 "opas": "Open File",
@@ -277,7 +350,9 @@ if __name__ == '__main__':
                 "thmtc": ": Custom",
                 "lngc": "Language",
                 "setnt": "Settings",
-                "nott": "Notepad--", }
+                "nott": "Notepad--",
+                "rec": "Recent files",
+                "recb": "Recents",}
 
     colort = ""
     colorf = ""
@@ -294,6 +369,7 @@ if __name__ == '__main__':
                 cur_lang = lang_eng
     app = QApplication(sys.argv)
     ex = notepad(colort)
+    recentloc = recentwindow()
     settingsloc = settings()
     ex.show()
     sys.exit(app.exec())
