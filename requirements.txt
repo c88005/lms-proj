@@ -1,0 +1,3 @@
+pyqt6
+(pip install pyqt6)
+(requirements.bat устанавливает сразу в систему не в pycharm!)
