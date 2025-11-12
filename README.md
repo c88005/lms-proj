@@ -1,5 +1,6 @@
 # notepad --
 YOU NEED PYQT6 FOR THIS TO WORK!!
+
 project i made for lms yandex
 
 
